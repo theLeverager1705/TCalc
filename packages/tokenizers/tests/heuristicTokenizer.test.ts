@@ -71,6 +71,21 @@ describe("estimateFileTokens", () => {
     const content = "some file content here";
     expect(estimateFileTokens(content)).toBe(estimateTokens(content));
   });
+
+  it.each(["constructor", "__proto__", "CONSTRUCTOR", "__PROTO__"])(
+    "should treat .%s as an unknown extension",
+    (ext) => {
+      const content = "export const value = 42;";
+      expect(estimateFileTokens(content, `file.${ext}`)).toBe(estimateTokens(content));
+      expect(estimateFileTokens("", `file.${ext}`)).toBe(0);
+    },
+  );
+
+  it("should keep known extension adjustments", () => {
+    const content = "export const value = 42;";
+    expect(estimateFileTokens(content, "data.json")).toBe(Math.round(estimateTokens(content) * 0.9));
+    expect(estimateFileTokens(content, "README.MD")).toBe(Math.round(estimateTokens(content) * 1.1));
+  });
 });
 
 describe("estimateTokensFromBytes", () => {
@@ -138,4 +153,14 @@ describe("HeuristicTokenizer", () => {
     const txtResult = tokenizer.estimateFile("readme.txt", content);
     expect(lockResult.tokens).toBeGreaterThan(txtResult.tokens);
   });
+
+  it.each(["constructor", "__proto__", "CONSTRUCTOR", "__PROTO__"])(
+    "should not adjust .%s files",
+    (ext) => {
+      const content = "export const value = 42;";
+      const result = tokenizer.estimateFile(`file.${ext}`, content);
+      expect(result.tokens).toBe(estimateTokens(content));
+      expect(result.details).toBeUndefined();
+    },
+  );
 });
